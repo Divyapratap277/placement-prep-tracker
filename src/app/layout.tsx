@@ -1,3 +1,4 @@
+import { SessionProvider } from "next-auth/react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
@@ -7,7 +8,6 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Placement Prep Tracker",
-  description: "Track your placement prep efficiently",
 }
 
 export default function RootLayout({
