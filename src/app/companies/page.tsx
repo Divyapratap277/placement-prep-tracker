@@ -39,6 +39,7 @@ export default function CompaniesPage() {
   const router = useRouter()
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadedOnce, setLoadedOnce] = useState(false)
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
@@ -54,9 +55,13 @@ export default function CompaniesPage() {
     if (status === "unauthenticated") {
       router.push("/login")
     } else if (status === "authenticated") {
-      fetchCompanies()
+      if (!loadedOnce) {
+        fetchCompanies()
+      } else {
+        setLoading(false)
+      }
     }
-  }, [status, router])
+  }, [status, router, loadedOnce])
 
   async function fetchCompanies() {
     try {
@@ -65,6 +70,7 @@ export default function CompaniesPage() {
         const data = await res.json()
         setCompanies(data)
       }
+      setLoadedOnce(true)
     } catch (error) {
       console.error("Fetch error:", error)
     } finally {
@@ -85,7 +91,7 @@ export default function CompaniesPage() {
       })
 
       if (res.ok) {
-        fetchCompanies()
+        await fetchCompanies()
         setOpen(false)
         resetForm()
       }
@@ -99,7 +105,9 @@ export default function CompaniesPage() {
 
     try {
       const res = await fetch(`/api/companies/${id}`, { method: "DELETE" })
-      if (res.ok) fetchCompanies()
+      if (res.ok) {
+         setCompanies((prev) => prev.filter((company) => company.id !== id)) 
+      }
     } catch (error) {
       console.error("Delete error:", error)
     }
@@ -130,8 +138,21 @@ export default function CompaniesPage() {
     })
   }
 
-  if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow">
+          <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Placement Prep Tracker</h1>
+          </div>
+        </header>
+        <main className="container mx-auto p-6">
+          <div className="text-center py-12 text-gray-500">
+            Loading companies...
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (

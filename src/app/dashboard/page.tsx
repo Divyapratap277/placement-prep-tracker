@@ -27,22 +27,26 @@ export default function DashboardPage() {
     todoTasks: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [loadedOnce, setLoadedOnce] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
     } else if (status === "authenticated") {
-      fetchStats()
+      // if we already loaded once in this session, don't refetch
+      if (!loadedOnce) {
+        fetchStats()
+      } else {
+        setLoading(false)
+      }
     }
-  }, [status, router])
+  }, [status, router, loadedOnce])
 
   async function fetchStats() {
     try {
-      // Fetch companies
       const companiesRes = await fetch("/api/companies")
       const companies = companiesRes.ok ? await companiesRes.json() : []
 
-      // Fetch tasks
       const tasksRes = await fetch("/api/tasks")
       const tasks = tasksRes.ok ? await tasksRes.json() : []
 
@@ -53,6 +57,7 @@ export default function DashboardPage() {
         inProgressTasks: tasks.filter((t: any) => t.status === "IN_PROGRESS").length,
         todoTasks: tasks.filter((t: any) => t.status === "TODO").length,
       })
+      setLoadedOnce(true)
     } catch (error) {
       console.error("Fetch stats error:", error)
     } finally {
@@ -60,8 +65,20 @@ export default function DashboardPage() {
     }
   }
 
-  if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  // Only block on our own loading, not on session.status
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow">
+          <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Placement Prep Tracker</h1>
+          </div>
+        </header>
+        <main className="container mx-auto px-6 py-8">
+          <div className="text-center text-gray-500">Loading dashboard...</div>
+        </main>
+      </div>
+    )
   }
 
   return (
