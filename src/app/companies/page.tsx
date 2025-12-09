@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -21,27 +21,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Trash2, Edit, Plus, LogOut } from "lucide-react"
+} from "@/components/ui/table";
+import { Trash2, Edit, Plus, LogOut } from "lucide-react";
 
 type Company = {
-  id: string
-  name: string
-  role: string
-  ctc: string
-  location: string
-  rounds: string
-  requiredSkills: string
-}
+  id: string;
+  name: string;
+  role: string;
+  ctc: string;
+  location: string;
+  rounds: string;
+  requiredSkills: string;
+};
 
 export default function CompaniesPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadedOnce, setLoadedOnce] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadedOnce, setLoadedOnce] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -49,72 +49,72 @@ export default function CompaniesPage() {
     location: "",
     rounds: "",
     requiredSkills: "",
-  })
+  });
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login")
+      router.push("/login");
     } else if (status === "authenticated") {
       if (!loadedOnce) {
-        fetchCompanies()
+        fetchCompanies();
       } else {
-        setLoading(false)
+        setLoading(false);
       }
     }
-  }, [status, router, loadedOnce])
+  }, [status, router, loadedOnce]);
 
   async function fetchCompanies() {
     try {
-      const res = await fetch("/api/companies")
+      const res = await fetch("/api/companies");
       if (res.ok) {
-        const data = await res.json()
-        setCompanies(data)
+        const data = await res.json();
+        setCompanies(data);
       }
-      setLoadedOnce(true)
+      setLoadedOnce(true);
     } catch (error) {
-      console.error("Fetch error:", error)
+      console.error("Fetch error:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const url = editingId ? `/api/companies/${editingId}` : "/api/companies"
-    const method = editingId ? "PATCH" : "POST"
+    e.preventDefault();
+    const url = editingId ? `/api/companies/${editingId}` : "/api/companies";
+    const method = editingId ? "PATCH" : "POST";
 
     try {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
-      })
+      });
 
       if (res.ok) {
-        await fetchCompanies()
-        setOpen(false)
-        resetForm()
+        await fetchCompanies();
+        setOpen(false);
+        resetForm();
       }
     } catch (error) {
-      console.error("Submit error:", error)
+      console.error("Submit error:", error);
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this company?")) return
+    if (!confirm("Delete this company?")) return;
 
     try {
-      const res = await fetch(`/api/companies/${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/companies/${id}`, { method: "DELETE" });
       if (res.ok) {
-         setCompanies((prev) => prev.filter((company) => company.id !== id)) 
+        setCompanies((prev) => prev.filter((company) => company.id !== id));
       }
     } catch (error) {
-      console.error("Delete error:", error)
+      console.error("Delete error:", error);
     }
   }
 
   function handleEdit(company: Company) {
-    setEditingId(company.id)
+    setEditingId(company.id);
     setFormData({
       name: company.name,
       role: company.role,
@@ -122,12 +122,12 @@ export default function CompaniesPage() {
       location: company.location,
       rounds: company.rounds,
       requiredSkills: company.requiredSkills,
-    })
-    setOpen(true)
+    });
+    setOpen(true);
   }
 
   function resetForm() {
-    setEditingId(null)
+    setEditingId(null);
     setFormData({
       name: "",
       role: "",
@@ -135,7 +135,7 @@ export default function CompaniesPage() {
       location: "",
       rounds: "",
       requiredSkills: "",
-    })
+    });
   }
 
   if (loading) {
@@ -152,7 +152,7 @@ export default function CompaniesPage() {
           </div>
         </main>
       </div>
-    )
+    );
   }
 
   return (
@@ -165,7 +165,10 @@ export default function CompaniesPage() {
             <span className="text-sm text-gray-600">
               Welcome, {session?.user?.name}
             </span>
-            <Button variant="outline" onClick={() => signOut({ callbackUrl: "/login" })}>
+            <Button
+              variant="outline"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -176,7 +179,10 @@ export default function CompaniesPage() {
       {/* Navigation */}
       <nav className="bg-white border-b">
         <div className="container mx-auto px-6 py-3 flex gap-6">
-          <Link href="/dashboard" className="text-gray-600 hover:text-blue-600 pb-3">
+          <Link
+            href="/dashboard"
+            className="text-gray-600 hover:text-blue-600 pb-3"
+          >
             Dashboard
           </Link>
           <Link
@@ -185,7 +191,10 @@ export default function CompaniesPage() {
           >
             Companies
           </Link>
-          <Link href="/tasks" className="text-gray-600 hover:text-blue-600 pb-3">
+          <Link
+            href="/tasks"
+            className="text-gray-600 hover:text-blue-600 pb-3"
+          >
             Tasks
           </Link>
         </div>
@@ -294,7 +303,14 @@ export default function CompaniesPage() {
             <TableBody>
               {companies.map((company) => (
                 <TableRow key={company.id}>
-                  <TableCell className="font-medium">{company.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/companies/${company.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {company.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{company.role}</TableCell>
                   <TableCell>{company.ctc}</TableCell>
                   <TableCell>{company.location}</TableCell>
@@ -331,5 +347,5 @@ export default function CompaniesPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

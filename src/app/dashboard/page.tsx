@@ -29,6 +29,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [loadedOnce, setLoadedOnce] = useState(false)
 
+  const [upcomingTasks, setUpcomingTasks] = useState<any[]>([])
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
@@ -57,6 +59,16 @@ export default function DashboardPage() {
         inProgressTasks: tasks.filter((t: any) => t.status === "IN_PROGRESS").length,
         todoTasks: tasks.filter((t: any) => t.status === "TODO").length,
       })
+
+      //New Upcoming task 
+
+      setUpcomingTasks(
+        tasks
+        .filter((t: any) => t.status === "TODO" || t.status === "IN_PROGRESS")
+        .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+        .slice(0, 5)
+      )
+
       setLoadedOnce(true)
     } catch (error) {
       console.error("Fetch stats error:", error)
@@ -185,7 +197,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
@@ -219,6 +231,45 @@ export default function DashboardPage() {
               </ol>
             </CardContent>
           </Card>
+
+          <Card>
+  <CardHeader>
+    <CardTitle>Upcoming Tasks</CardTitle>
+  </CardHeader>
+  <CardContent>
+    {upcomingTasks.length === 0 ? (
+      <p className="text-sm text-gray-500">No pending tasks</p>
+    ) : (
+      <ul className="space-y-3">
+        {upcomingTasks.map((task) => (
+          <li key={task.id} className="flex justify-between items-start text-sm">
+            <div className="flex-1">
+              <p className="font-medium">{task.title}</p>
+              <p className="text-xs text-gray-500">{task.topic} • {task.type}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-medium text-orange-600">
+                {new Date(task.dueDate).toLocaleDateString()}
+              </p>
+              <span className={`inline-block px-2 py-0.5 text-xs rounded ${
+                task.status === "TODO" 
+                  ? "bg-gray-100 text-gray-700" 
+                  : "bg-blue-100 text-blue-700"
+              }`}>
+                {task.status === "TODO" ? "To Do" : "In Progress"}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+    <Link href="/tasks">
+      <Button variant="link" className="px-0 mt-3 w-full">
+        View all tasks →
+      </Button>
+    </Link>
+  </CardContent>
+</Card>
         </div>
       </main>
     </div>

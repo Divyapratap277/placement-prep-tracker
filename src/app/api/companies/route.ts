@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../../../auth"
 import { prisma } from "@/lib/prisma"
+import { createCompnaySchema } from "@/lib/validations"
+import { error } from "console"
 
 // GET all companies for logged-in user
 export async function GET(req: NextRequest) {
@@ -35,25 +37,31 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { name, role, ctc, location, rounds, requiredSkills } = body
 
-    if (!name || !role) {
+    const parsed = createCompnaySchema.safeParse(body)
+    if(!parsed.success)
+    {
       return NextResponse.json(
-        { error: "Name and role are required" },
-        { status: 400 }
+        {
+          error:"Validation Failed",
+          details:parsed.error.flatten().fieldErrors
+        },
+        {status:400},
       )
     }
 
-    const company = await prisma.company.create({
-      data: {
-        userId: session.user.id as string,
-        name,
-        role,
-        ctc: ctc || "",
-        location: location || "",
-        rounds: rounds || "",
-        requiredSkills: requiredSkills || "",
-      },
+    const data= parsed.data
+
+    const company= await prisma.company.create({
+      data:{
+        userId: session.user.id,
+        name: data.name,
+        role: data.role,
+        ctc: data.ctc || "",
+        location: data.location || "",
+        rounds: data.rounds || "",
+        requiredSkills: data.requiredSkills || "",
+      }
     })
 
     return NextResponse.json(company, { status: 201 })

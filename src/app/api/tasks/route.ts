@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../../../auth"
 import { prisma } from "@/lib/prisma"
+import { createTaskSchema } from "@/lib/validations"
 
 export async function GET(_req: NextRequest) {
   try {
@@ -31,21 +32,49 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { title, type, status, topic, dueDate, companyId } = body
 
-    if (!title || !type || !topic || !dueDate) {
+    // 1) Validate body with Zod schema
+    const parsed = createTaskSchema.safeParse(body)
+
+    if (!parsed.success) {
+      console.log("ZOD ERROR:", parsed.error.flatten().fieldErrors)
       return NextResponse.json(
-        { error: "Missing required fields" },
+        {
+          error: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 },
       )
     }
 
+    // 2) Use validated data (types and required fields guaranteed)
+    const data = parsed.data
+    const { title, type, status, topic, dueDate, companyId } = data
+
+    // 3) If companyId is provided, ensure it exists for this user
+    if (companyId) {
+      const company = await prisma.company.findFirst({
+        where: {
+          id: companyId,
+          userId: session.user.id,
+        },
+      })
+
+      if (!company) {
+        return NextResponse.json(
+          { error: "Company not found or access denied" },
+          { status: 400 },
+        )
+      }
+    }
+
+    // 4) Create task using safe, validated data
     const task = await prisma.task.create({
       data: {
         userId: session.user.id,
         title,
         type,
-        status: status || "TODO",
+        status: status || "TODO", // default if not sent
         topic,
         dueDate: new Date(dueDate),
         companyId: companyId || null,

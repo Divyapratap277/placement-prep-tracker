@@ -2,7 +2,50 @@ import { NextRequest, NextResponse } from "next/server";
 import {prisma} from "@/lib/prisma"
 import { authOptions }  from "../../../../../auth"
 import { getServerSession } from "next-auth"
+import { updateCompanySchema } from "@/lib/validations";
 
+
+//GET: GEt the companies data
+
+export async function GET(
+  _req: NextRequest,
+  {params}:{params : {id:string}}
+)
+{
+  try {
+    const session = await getServerSession(authOptions)
+    if(!session?.user?.id)
+    {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const company= await prisma.company.findFirst({
+      where:{
+        id: params.id,
+        userId: session.user.id,
+      },
+      include:{
+         tasks:
+         {
+          where:{
+            userId:session.user.id,
+            companyId: params.id,
+          },
+          orderBy:{ dueDate: "asc"},
+         }
+      }
+    })
+
+    if(!company)
+    {
+      return NextResponse.json({error: "Not Found"}, {status:404})
+    }
+
+    return NextResponse.json(company)
+  } catch (error) {
+      console.error("GET company detail error:", error)
+    return NextResponse.json({ error: "Internal error" }, { status: 500 })
+  }
+}
 
 //PATCH: update the company
 
@@ -19,24 +62,31 @@ export async function PATCH(
         }
 
         const body = await req.json()
-        const {role, ctc, name, location, rounds, requiredSkills}= body
 
-        const company = await prisma.company.updateMany({
-            where :{
-                id:params.id,
-                userId:session.user.id,
-            },
-            data:{
-                name,
-                role,
-                ctc,
-                location,
-                rounds,
-                requiredSkills,
-            }
-        })
+        
 
-        if(company.count === 0)
+    const parsed = updateCompanySchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      )
+    }
+
+    const data = parsed.data
+
+    const updated = await prisma.company.updateMany({
+      where: {
+        id: params.id,
+        userId: session.user.id,
+      },
+      data,
+    })
+
+        if(updated.count === 0)
         {
            return NextResponse.json({error: "Not FOund "}, {status:404})
         }
