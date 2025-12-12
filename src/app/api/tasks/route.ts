@@ -78,6 +78,8 @@ export async function POST(req: NextRequest) {
         topic,
         dueDate: new Date(dueDate),
         companyId: companyId || null,
+        description: data.description,
+        notes: data.notes,
       },
     })
 

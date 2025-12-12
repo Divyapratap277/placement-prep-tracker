@@ -33,6 +33,8 @@ type Task = {
   dueDate: string
   companyId: string | null
   company?: { name: string } | null
+  description?: string | null
+  notes?: string | null
 }
 
 type CompanyOption = {
@@ -62,6 +64,8 @@ export default function TasksPage() {
     topic: "",
     dueDate: "",
     companyId: "",
+    description: "",
+    notes: "",
   })
 
   useEffect(() => {
@@ -181,6 +185,8 @@ export default function TasksPage() {
       topic: task.topic,
       dueDate: task.dueDate?.slice(0, 10),
       companyId: task.companyId || "",
+      description: task.description || "",
+      notes: task.notes || "",
     })
     setOpen(true)
   }
@@ -194,6 +200,9 @@ export default function TasksPage() {
       topic: "",
       dueDate: "",
       companyId: "",
+      description: "",
+      notes: "",
+
     })
   }
 
@@ -352,6 +361,34 @@ export default function TasksPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* NEW: Description */}
+                <div>
+                  <Label>Description</Label>
+                  <textarea
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    placeholder="e.g., Watch Abdul Bari’s DP videos and solve 10 questions"
+                  />
+                </div>
+
+                {/* NEW: Notes */}
+                <div>
+                  <Label>Notes</Label>
+                  <textarea
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    rows={2}
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    placeholder="Quick reminders, links, interview hints..."
+                  />
                 </div>
                 <Button type="submit" className="w-full">
                   {editingId ? "Update" : "Create"}

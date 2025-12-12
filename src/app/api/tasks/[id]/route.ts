@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../../../../auth"
 import { prisma } from "@/lib/prisma"
+import { updateTaskSchema } from "@/lib/validations"
 
 export async function PATCH(
   req: NextRequest,
@@ -14,20 +15,33 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const { title, type, status, topic, dueDate, companyId } = body
+    const parsed = updateTaskSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      )
+    }
+
+    const data = parsed.data
 
     const updated = await prisma.task.updateMany({
       where: {
-        id: params.id,             // plain string
-        userId: session.user.id,   // plain string
+        id: params.id,
+        userId: session.user.id,
       },
       data: {
-        title,
-        type,
-        status,
-        topic,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
-        companyId: companyId ?? undefined,
+        title: data.title,
+        type: data.type,
+        status: data.status,
+        topic: data.topic,
+        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        companyId: data.companyId ?? undefined,
+        description: data.description,
+        notes: data.notes,
       },
     })
 
@@ -54,8 +68,8 @@ export async function DELETE(
 
     const deleted = await prisma.task.deleteMany({
       where: {
-        id: params.id,             // plain string
-        userId: session.user.id,   // plain string
+        id: params.id,
+        userId: session.user.id,
       },
     })
 

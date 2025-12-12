@@ -10,6 +10,8 @@ export const createTaskSchema = z.object({
     dueDate: z.string().datetime("Invalid date format").or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date")),
 //   companyId: z.string().uuid("Invalid company ID").optional().nullable(),
     companyId: z.string().optional().nullable(),
+    description: z.string().max(2000, "Description is too long").optional(),
+    notes: z.string().max(2000,"Notes too long").optional()
 })
 
 
@@ -23,6 +25,8 @@ export const updateTaskSchema = z.object({
     status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
     dueDate: z.string().datetime("Invalid date format").or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date")).optional(),
     companyId: z.string().uuid("Invalid company ID").optional().nullable(),
+    description: z.string().max(2000, "Description is too long").optional(),
+    notes: z.string().max(2000,"Notes too long").optional()
 })
 
 //Company validation schema for POST
