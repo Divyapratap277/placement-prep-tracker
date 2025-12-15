@@ -50,25 +50,36 @@ export default function CompaniesPage() {
     rounds: "",
     requiredSkills: "",
   });
+  const [search, setSearch] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
-    } else if (status === "authenticated") {
-      if (!loadedOnce) {
-        fetchCompanies();
-      } else {
-        setLoading(false);
-      }
+    } else if (status === "authenticated" && !loadedOnce) {
+      // load first page once
+      fetchCompanies(1, pageSize);
     }
-  }, [status, router, loadedOnce]);
+  }, [status, router, loadedOnce, pageSize]);
 
-  async function fetchCompanies() {
+  async function fetchCompanies(
+    currentPage = page,
+    currentPageSize = pageSize,
+  ) {
     try {
-      const res = await fetch("/api/companies");
+      const res = await fetch(
+        `/api/companies?page=${currentPage}&pageSize=${currentPageSize}`,
+      );
+
       if (res.ok) {
         const data = await res.json();
-        setCompanies(data);
+        // data: { items, totalPages, totalCount, page, pageSize }
+        const items: Company[] = Array.isArray(data.items) ? data.items : [];
+        setCompanies(items);
+        setTotalPages(data.totalPages ?? 1);
+        setPage(data.page ?? currentPage);
       }
       setLoadedOnce(true);
     } catch (error) {
@@ -91,7 +102,7 @@ export default function CompaniesPage() {
       });
 
       if (res.ok) {
-        await fetchCompanies();
+        await fetchCompanies(1, pageSize); // refresh from first page
         setOpen(false);
         resetForm();
       }
@@ -106,7 +117,8 @@ export default function CompaniesPage() {
     try {
       const res = await fetch(`/api/companies/${id}`, { method: "DELETE" });
       if (res.ok) {
-        setCompanies((prev) => prev.filter((company) => company.id !== id));
+        // reload current page from server (keeps pagination consistent)
+        await fetchCompanies(page, pageSize);
       }
     } catch (error) {
       console.error("Delete error:", error);
@@ -138,7 +150,7 @@ export default function CompaniesPage() {
     });
   }
 
-  if (loading) {
+  if (loading && !loadedOnce) {
     return (
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow">
@@ -338,6 +350,58 @@ export default function CompaniesPage() {
               ))}
             </TableBody>
           </Table>
+
+          {/* Pagination controls */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Rows per page:</span>
+              <select
+                className="border rounded px-2 py-1 text-sm"
+                value={pageSize}
+                onChange={(e) => {
+                  const newSize = Number(e.target.value);
+                  setPage(1);
+                  setPageSize(newSize);
+                  fetchCompanies(1, newSize);
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={75}>75</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => {
+                  const newPage = page - 1;
+                  setPage(newPage);
+                  fetchCompanies(newPage, pageSize);
+                }}
+              >
+                Prev
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => {
+                  const newPage = page + 1;
+                  setPage(newPage);
+                  fetchCompanies(newPage, pageSize);
+                }}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
 
           {companies.length === 0 && (
             <div className="text-center py-12 text-gray-500">

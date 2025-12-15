@@ -14,13 +14,42 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    
+    //Reading page + size of page from URL: /api/companies?page=2&pageSize=25
+    const { searchParams } = new URL(req.url);
+    const page = Number(searchParams.get("page")?? "1");
+    const pageSize = Number(searchParams.get("pageSize")?? "10")
 
-    const companies = await prisma.company.findMany({
-      where: { userId: session.user.id as string },
-      orderBy: { createdAt: "desc" },
-    })
+    //
 
-    return NextResponse.json(companies)
+    const take = Math.min(Math.max(pageSize, 1),75);  //betn 1-75
+    const currentPage = Math.max(page, 1);
+    const skip = (currentPage - 1) * take;
+
+    const [items,totalCount]= await Promise.all([
+      prisma.company.findMany({
+        where:{ userId: session.user.id as string },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+      prisma.company.count({
+        where: { userId: session.user.id as string },
+      }),
+    ])
+
+    // Compute total pages for "Page X of Y"
+    const totalPages = Math.max(Math.ceil(totalCount / take), 1);
+
+    // Return data + metadata
+    return NextResponse.json({
+      items,
+      totalPages,
+      totalCount,
+      page: currentPage,
+      pageSize: take,
+    });
+    
   } catch (error) {
     console.error("GET companies error:", error)
     return NextResponse.json({ error: "Internal error" }, { status: 500 })

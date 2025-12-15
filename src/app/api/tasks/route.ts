@@ -4,20 +4,43 @@ import { authOptions } from "../../../../auth"
 import { prisma } from "@/lib/prisma"
 import { createTaskSchema } from "@/lib/validations"
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const tasks = await prisma.task.findMany({
-      where: { userId: session.user.id },
-      include: { company: { select: { name: true } } },
-      orderBy: { dueDate: "asc" },
-    })
+    const searchParams = req.nextUrl.searchParams
+    const page = Number(searchParams.get("page") ?? "1")
+    const pageSize = Number(searchParams.get("pageSize") ?? "10")
 
-    return NextResponse.json(tasks)
+    const take = Math.min(Math.max(pageSize, 1), 75)
+    const currentPage = Math.max(page, 1)
+    const skip = (currentPage - 1) * take
+
+    const [items, totalCount] = await Promise.all([
+      prisma.task.findMany({
+        where: { userId: session.user.id },
+        include: { company: { select: { name: true } } },
+        orderBy: { dueDate: "asc" },
+        skip,
+        take,
+      }),
+      prisma.task.count({
+        where: { userId: session.user.id },
+      }),
+    ])
+
+    const totalPages = Math.max(Math.ceil(totalCount / take), 1)
+
+    return NextResponse.json({
+      items,
+      totalPages,
+      totalCount,
+      page: currentPage,
+      pageSize: take,
+    })
   } catch (error) {
     console.error("GET tasks error:", error)
     return NextResponse.json({ error: "Internal error" }, { status: 500 })

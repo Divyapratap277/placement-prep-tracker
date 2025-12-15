@@ -28,14 +28,12 @@ export default function DashboardPage() {
   })
   const [loading, setLoading] = useState(true)
   const [loadedOnce, setLoadedOnce] = useState(false)
-
   const [upcomingTasks, setUpcomingTasks] = useState<any[]>([])
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
     } else if (status === "authenticated") {
-      // if we already loaded once in this session, don't refetch
       if (!loadedOnce) {
         fetchStats()
       } else {
@@ -46,38 +44,51 @@ export default function DashboardPage() {
 
   async function fetchStats() {
     try {
+      setLoading(true)
+
       const companiesRes = await fetch("/api/companies")
-      const companies = companiesRes.ok ? await companiesRes.json() : []
+      const companiesJson = companiesRes.ok ? await companiesRes.json() : []
+      const companies = Array.isArray(companiesJson)
+        ? companiesJson
+        : companiesJson.items ?? []
 
       const tasksRes = await fetch("/api/tasks")
-      const tasks = tasksRes.ok ? await tasksRes.json() : []
+      const tasksJson = tasksRes.ok ? await tasksRes.json() : []
+      const tasks = Array.isArray(tasksJson)
+        ? tasksJson
+        : tasksJson.items ?? []
 
       setStats({
         totalCompanies: companies.length,
         totalTasks: tasks.length,
         doneTasks: tasks.filter((t: any) => t.status === "DONE").length,
-        inProgressTasks: tasks.filter((t: any) => t.status === "IN_PROGRESS").length,
+        inProgressTasks: tasks.filter(
+          (t: any) => t.status === "IN_PROGRESS",
+        ).length,
         todoTasks: tasks.filter((t: any) => t.status === "TODO").length,
       })
 
-      //New Upcoming task 
-
       setUpcomingTasks(
         tasks
-        .filter((t: any) => t.status === "TODO" || t.status === "IN_PROGRESS")
-        .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-        .slice(0, 5)
+          .filter(
+            (t: any) => t.status === "TODO" || t.status === "IN_PROGRESS",
+          )
+          .sort(
+            (a: any, b: any) =>
+              new Date(a.dueDate).getTime() -
+              new Date(b.dueDate).getTime(),
+          )
+          .slice(0, 5),
       )
 
       setLoadedOnce(true)
     } catch (error) {
-      console.error("Fetch stats error:", error)
+      console.error("fetchStats error:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  // Only block on our own loading, not on session.status
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -103,7 +114,10 @@ export default function DashboardPage() {
             <span className="text-sm text-gray-600">
               Welcome, {session?.user?.name}
             </span>
-            <Button variant="outline" onClick={() => signOut({ callbackUrl: "/login" })}>
+            <Button
+              variant="outline"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -149,7 +163,9 @@ export default function DashboardPage() {
               <Building2 className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stats.totalCompanies}</div>
+              <div className="text-3xl font-bold">
+                {stats.totalCompanies}
+              </div>
               <Link href="/companies">
                 <Button variant="link" className="px-0 mt-2">
                   View all →
@@ -168,7 +184,8 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-3xl font-bold">{stats.totalTasks}</div>
               <p className="text-sm text-gray-500 mt-1">
-                {stats.doneTasks} done · {stats.inProgressTasks} in progress · {stats.todoTasks} todo
+                {stats.doneTasks} done · {stats.inProgressTasks} in progress ·{" "}
+                {stats.todoTasks} todo
               </p>
             </CardContent>
           </Card>
@@ -183,7 +200,9 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-3xl font-bold">
                 {stats.totalTasks > 0
-                  ? Math.round((stats.doneTasks / stats.totalTasks) * 100)
+                  ? Math.round(
+                      (stats.doneTasks / stats.totalTasks) * 100,
+                    )
                   : 0}
                 %
               </div>
@@ -196,7 +215,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions + Getting Started + Upcoming */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
@@ -233,43 +252,54 @@ export default function DashboardPage() {
           </Card>
 
           <Card>
-  <CardHeader>
-    <CardTitle>Upcoming Tasks</CardTitle>
-  </CardHeader>
-  <CardContent>
-    {upcomingTasks.length === 0 ? (
-      <p className="text-sm text-gray-500">No pending tasks</p>
-    ) : (
-      <ul className="space-y-3">
-        {upcomingTasks.map((task) => (
-          <li key={task.id} className="flex justify-between items-start text-sm">
-            <div className="flex-1">
-              <p className="font-medium">{task.title}</p>
-              <p className="text-xs text-gray-500">{task.topic} • {task.type}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs font-medium text-orange-600">
-                {new Date(task.dueDate).toLocaleDateString()}
-              </p>
-              <span className={`inline-block px-2 py-0.5 text-xs rounded ${
-                task.status === "TODO" 
-                  ? "bg-gray-100 text-gray-700" 
-                  : "bg-blue-100 text-blue-700"
-              }`}>
-                {task.status === "TODO" ? "To Do" : "In Progress"}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    )}
-    <Link href="/tasks">
-      <Button variant="link" className="px-0 mt-3 w-full">
-        View all tasks →
-      </Button>
-    </Link>
-  </CardContent>
-</Card>
+            <CardHeader>
+              <CardTitle>Upcoming Tasks</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {upcomingTasks.length === 0 ? (
+                <p className="text-sm text-gray-500">No pending tasks</p>
+              ) : (
+                <ul className="space-y-3">
+                  {upcomingTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      className="flex justify-between items-start text-sm"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">{task.title}</p>
+                        <p className="text-xs text-gray-500">
+                          {task.topic} • {task.type}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-medium text-orange-600">
+                          {new Date(
+                            task.dueDate,
+                          ).toLocaleDateString()}
+                        </p>
+                        <span
+                          className={`inline-block px-2 py-0.5 text-xs rounded ${
+                            task.status === "TODO"
+                              ? "bg-gray-100 text-gray-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {task.status === "TODO"
+                            ? "To Do"
+                            : "In Progress"}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href="/tasks">
+                <Button variant="link" className="px-0 mt-3 w-full">
+                  View all tasks →
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

@@ -24,7 +24,7 @@ export const updateTaskSchema = z.object({
     topic: z.string().min(1, "Topic is required").max(200,"Topic too long").optional(),
     status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
     dueDate: z.string().datetime("Invalid date format").or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date")).optional(),
-    companyId: z.string().uuid("Invalid company ID").optional().nullable(),
+    companyId: z.string().optional().nullable(),
     description: z.string().max(2000, "Description is too long").optional(),
     notes: z.string().max(2000,"Notes too long").optional()
 })

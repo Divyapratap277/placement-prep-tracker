@@ -6,9 +6,12 @@ import { updateTaskSchema } from "@/lib/validations"
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { params } = context
+    const { id } = await params   // 👈 unwrap the Promise
+
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -17,6 +20,7 @@ export async function PATCH(
     const body = await req.json()
     const parsed = updateTaskSchema.safeParse(body)
     if (!parsed.success) {
+      console.log("TASK PATCH ZOD ERROR", parsed.error.flatten().fieldErrors)
       return NextResponse.json(
         {
           error: "Validation failed",
@@ -28,26 +32,19 @@ export async function PATCH(
 
     const data = parsed.data
 
-    const updated = await prisma.task.updateMany({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
+    await prisma.task.update({
+      where: { id },
       data: {
         title: data.title,
         type: data.type,
         status: data.status,
         topic: data.topic,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-        companyId: data.companyId ?? undefined,
+        companyId: data.companyId ?? null,
         description: data.description,
         notes: data.notes,
       },
     })
-
-    if (updated.count === 0) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 })
-    }
 
     return NextResponse.json({ message: "Updated" })
   } catch (error) {
